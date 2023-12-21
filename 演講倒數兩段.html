@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Countdown Timer</title>
+  <style>
+    /* CSS 樣式 */
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      text-align: center;
+      width: 300px;
+    }
+
+    label {
+      display: inline-block;
+      width: 120px;
+      margin-bottom: 5px;
+      text-align: left;
+    }
+
+    input {
+      width: 50px;
+      padding: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin: 5px 0;
+    }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 5px;
+      border: none;
+      background-color: #4caf50;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 10px;
+      margin-right: 5px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #timer {
+      font-size: 48px;
+      margin-top: 20px;
+    }
+
+    #messages {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 20px;
+      color: #555;
+    }
+
+    .button-group {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Countdown Timer</h2>
+    <div>
+      <label for="total-minutes">Total Minutes:</label>
+      <input type="number" id="total-minutes" min="0" value="0">
+      <label for="total-seconds">Total Seconds:</label>
+      <input type="number" id="total-seconds" min="0" value="0"><br>
+      <label for="reminder-minutes">Reminder Minutes:</label>
+      <input type="number" id="reminder-minutes" min="0" value="0">
+      <label for="reminder-seconds">Reminder Seconds:</label>
+      <input type="number" id="reminder-seconds" min="0" value="0"><br><br>
+      <div class="button-group">
+        <button onclick="startTimer()">Start Timer</button>
+        <button onclick="stopTimer()">Stop</button>
+        <button onclick="finishTimer()" id="finishButton" style="display: none;">Finish</button>
+      </div>
+      <div class="button-group">
+        <button onclick="playShortBeep()">Play Short Beep</button>
+        <button onclick="playLongBeep()">Play Long Beep</button>
+      </div>
+    </div>
+  
+    <div id="timer"></div>
+    <div id="messages"></div>
+    <div id="overtime" style="display: none;"></div>
+  </div>
+
+  <script>
+    // JavaScript 代碼
+    let interval;
+    let overtimeInterval;
+    let totalTimeSeconds;
+    let overtimeSeconds = 0; // 全域變數
+
+    function countdownTimer(totalMinutes, totalSeconds, reminderMinutes, reminderSeconds) {
+      totalTimeSeconds = totalMinutes * 60 + totalSeconds;
+      let totalSecondsRemaining = totalTimeSeconds;
+      interval = setInterval(function() {
+        totalSecondsRemaining--;
+
+        if (totalSecondsRemaining === (reminderMinutes * 60 + reminderSeconds) && (reminderMinutes * 60 + reminderSeconds) < totalTimeSeconds) {
+          playSound('short_beep.m4a');
+          displayMessage(`First reminder: ${reminderMinutes} minutes ${reminderSeconds} seconds remaining.`);
+        }
+
+        if (totalSecondsRemaining === 0) {
+          clearInterval(interval);
+          playSound('double_beep.m4a');
+          displayMessage("Time's up!");
+          document.getElementById('finishButton').style.display = 'inline-block';
+          startOvertimeTimer();
+        }
+
+        const minutes = Math.floor(totalSecondsRemaining / 60);
+        const seconds = totalSecondsRemaining % 60;
+
+        document.getElementById('timer').innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    function startTimer() {
+      overtimeSeconds = 0; // 重置超時時間
+      const totalMinutes = parseInt(document.getElementById('total-minutes').value) || 0;
+      const totalSeconds = parseInt(document.getElementById('total-seconds').value) || 0;
+      const reminderMinutes = parseInt(document.getElementById('reminder-minutes').value) || 0;
+      const reminderSeconds = parseInt(document.getElementById('reminder-seconds').value) || 0;
+
+      if ((reminderMinutes * 60 + reminderSeconds) >= (totalMinutes * 60 + totalSeconds)) {
+        displayMessage("Reminder time cannot be greater than or equal to total time.");
+        return;
+      }
+
+      clearInterval(overtimeInterval); // 清除超時計時器
+      document.getElementById('overtime').style.display = 'none'; // 隱藏超時時間
+
+      clearInterval(interval); // 清除現有計時器
+      countdownTimer(totalMinutes, totalSeconds, reminderMinutes, reminderSeconds);
+    }
+
+    function stopTimer() {
+      clearInterval(interval);
+      clearInterval(overtimeInterval);
+      displayMessage("Timer stopped.");
+      document.getElementById('finishButton').style.display = 'none';
+      document.getElementById('overtime').style.display = 'none';
+    }
+
+    function finishTimer() {
+      clearInterval(overtimeInterval);
+      displayMessage("Finish to end the timer.");
+      document.getElementById('finishButton').style.display = 'none';
+      document.getElementById('overtime').style.display = 'block';
+      document.getElementById('overtime').innerText = `Overtime: ${Math.floor(overtimeSeconds / 60)} minutes ${overtimeSeconds % 60} seconds.`;
+    }
+
+    function startOvertimeTimer() {
+      overtimeInterval = setInterval(function() {
+        overtimeSeconds++;
+        displayMessage(`Overtime: ${Math.floor(overtimeSeconds / 60)} minutes ${overtimeSeconds % 60} seconds.`);
+      }, 1000);
+    }
+
+    function playSound(soundFile) {
+      const audio = new Audio(soundFile);
+      audio.play();
+    }
+
+    function displayMessage(message) {
+      document.getElementById('messages').innerText = message;
+    }
+
+    function playShortBeep() {
+      playSound('short_beep.m4a');
+    }
+
+    function playLongBeep() {
+      playSound('double_beep.m4a');
+    }
+  </script>
+</body>
+</html>
